@@ -1,0 +1,1 @@
+Graph library that only stores indexes from a base array.

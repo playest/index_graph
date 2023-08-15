@@ -1,0 +1,16 @@
+[package]
+name = "index_graph"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+description = "Graph library that only stores indexes from a base array."
+homepage = "https://github.com/playest/index_graph"
+documentation = "https://github.com/playest/index_graph"
+repository = "https://github.com/playest/index_graph"
+readme = "README.md"
+keywords = ["graph"]
+categories = ["data-structures"]
+
+[dependencies]
+anyhow = {version = "1.0.72", features = ["backtrace"] }
+keyed_vec = {version = "0.1.0"}
