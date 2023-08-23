@@ -1,6 +1,6 @@
 mod test;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash, fmt::Display};
 
 use anyhow::Context;
 use keyed_vec::{IndexLike, KeyedVec};
@@ -170,8 +170,8 @@ pub struct GraphView<T> {
     backing_vec: KeyedVec<ImageVectorIndex, T>,
 }
 
-impl <T: std::fmt::Debug + Clone> GraphView<T> {
-    pub fn new(graph: Graph, content: &Vec<T>) -> GraphView<T> {
+impl <T> GraphView<T> {
+    pub fn new(graph: Graph, content: &Vec<T>) -> GraphView<T> where T: Clone {
         let mut kv = KeyedVec::<ImageVectorIndex, T>::new();
         content.iter().for_each(|e| { kv.push(e.clone()); });
         GraphView {
@@ -180,7 +180,18 @@ impl <T: std::fmt::Debug + Clone> GraphView<T> {
         }
     }
 
-    pub fn print(&self) {
+    pub fn print(&self) where T: Display {
+        for (node_index, node) in self.graph.base_vector.enumerate() {
+            println!("{:?}:{:?}:{}", node_index, node.value, self.backing_vec.get(node.value).unwrap());
+            for child_index in &node.children {
+                let b = self.graph.value_to_index.get(&child_index).unwrap();
+                let i = self.graph.base_vector.get(*b).unwrap_or_else(|| panic!("Failed to access child node {:?}: {:?} ({:?})", child_index, self.backing_vec.iter().map(|e| e.to_string()).collect::<Vec<String>>(), node.value.i));
+                println!("    {:?}:{}", i.value, self.backing_vec.get(i.value).unwrap());
+            }
+        }
+    }
+
+    pub fn print_debug(&self) where T: std::fmt::Debug {
         for (node_index, node) in self.graph.base_vector.enumerate() {
             println!("{:?}:{:?}:{:?}", node_index, node.value, self.backing_vec.get(node.value).unwrap());
             for child_index in &node.children {
@@ -189,6 +200,11 @@ impl <T: std::fmt::Debug + Clone> GraphView<T> {
                 println!("    {}:{:?}", i.value.i, self.backing_vec.get(i.value).unwrap());
             }
         }
+    }
+
+    pub fn print_rec(&self) where T: std::fmt::Debug + Display {
+        let mut grp = GraphRecursivePrint::new(&self);
+        grp.print();
     }
 
     fn get_internal(&self, value: ImageVectorIndex) -> Result<VertexView<T>, anyhow::Error> {
@@ -206,5 +222,52 @@ impl <T: std::fmt::Debug + Clone> GraphView<T> {
     // TODO actually make it an iterator
     pub fn iter(&self) -> impl Iterator<Item = (ImageVectorIndex, &T)> {
         self.backing_vec.enumerate()
+    }
+}
+
+#[derive(Debug)]
+enum IterStatus {
+    DONE
+}
+
+struct GraphRecursivePrint<'a, T> {
+    gv: &'a GraphView<T>,
+    node_status: HashMap<ImageVectorIndex, IterStatus>,
+}
+
+impl <'a, T> GraphRecursivePrint<'a, T> {
+    fn new(gv: &'a GraphView<T>) -> GraphRecursivePrint<'a, T> {
+        GraphRecursivePrint {
+            gv,
+            node_status: HashMap::new()
+        }
+    }
+
+    pub(crate) fn print(&mut self) where T: std::fmt::Display {
+        for (i, _) in self.gv.backing_vec.enumerate() {
+            self.print_rec(i, 0);
+        }
+    }
+
+    fn print_rec(&mut self, i: ImageVectorIndex, level: usize) where T: std::fmt::Display {
+        let status = self.node_status.get(&i);
+        if let Some(status) = status {
+            //eprintln!("status set to {:?}", status);
+            match status {
+                IterStatus::DONE => {
+                    let t = self.gv.get_by_internal_key(i).unwrap().value.translate();
+                    println!("{}{}: ... ({})", "  ".repeat(level), i.i, t);
+                },
+            }
+        }
+        else {
+            //eprintln!("status not set");
+            let t = self.gv.get_by_internal_key(i).unwrap().value.translate();
+            println!("{}{}: {}", "  ".repeat(level), i.i, t);
+            for child in &self.gv.graph.get(i).unwrap().children {
+                self.print_rec(*child, level + 1);
+            }
+        }
+        self.node_status.insert(i, IterStatus::DONE);
     }
 }

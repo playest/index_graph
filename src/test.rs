@@ -129,3 +129,38 @@ fn test_graph_with_duplicate_adds() {
     //dbg!(v_i_ar.value.translate());
     //dbg!(v_i_ar_children);
 }
+
+#[test]
+fn test_print_rec() {
+    use crate::{Graph, GraphView};
+    let items = vec!("Ro", "Am", "Li", "Je", "Na", "Ar", "Cl", "La", "Ju", "Ol");
+    let i_je = items.iter().position(|&e| e == "Je").unwrap();
+    let i_cl = items.iter().position(|&e| e == "Cl").unwrap();
+    let i_na = items.iter().position(|&e| e == "Na").unwrap();
+    let i_ar = items.iter().position(|&e| e == "Ar").unwrap();
+    let i_la = items.iter().position(|&e| e == "La").unwrap();
+    let i_ju = items.iter().position(|&e| e == "Ju").unwrap();
+    let i_ol = items.iter().position(|&e| e == "Ol").unwrap();
+    let i_ro = items.iter().position(|&e| e == "Ro").unwrap();
+    let i_am = items.iter().position(|&e| e == "Am").unwrap();
+    let i_li = items.iter().position(|&e| e == "Li").unwrap();
+    
+    let mut graph = Graph::new();
+    graph.add(None, i_je).unwrap();
+    graph.add(None, i_cl).unwrap();
+    graph.add(Some(i_je), i_na).unwrap();
+    graph.add(Some(i_je), i_ar).unwrap();
+    graph.add(Some(i_je), i_la).unwrap();
+    graph.add(Some(i_na), i_ju).unwrap();
+    graph.add(Some(i_na), i_ol).unwrap();
+    graph.add(Some(i_na), i_ro).unwrap();
+    graph.add(Some(i_ar), i_am).unwrap();
+    graph.add(Some(i_ar), i_li).unwrap();
+    graph.add(Some(i_cl), i_na).unwrap();
+    graph.add(Some(i_cl), i_ar).unwrap();
+    graph.add(Some(i_cl), i_la).unwrap();
+
+    let view = GraphView::new(graph, &items);
+    println!();
+    view.print_rec();
+}
